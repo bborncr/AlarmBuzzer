@@ -88,11 +88,10 @@ int addr = 0;
  20,0,23,0,0,59,5,1,10,0,0,1
  };*/
 
-int buzzerDuration = 5;
+int buzzerDuration = 4;
+int buzzerpin = 10;
 
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7, 8);
-
-boolean alarmFlag = false;
 
 #define MON_BUF_LEN 128
 
@@ -161,7 +160,6 @@ void loop()
     displayDate(3,0);
     displayTime(4,1);
     checkAlarms();
-    displayAlarmStatus();
 
   }
   //Serial.print("[memCheckMainLoop]");
@@ -212,23 +210,6 @@ void displayTime(int col, int row){
 
 }
 
-void displayAlarmStatus(){
-
-  if(alarmFlag==true){
-
-    lcd.setCursor(14,1);
-    lcd.write(byte(0));
-    lcd.write(byte(1));
-
-  }
-  else {
-    lcd.setCursor(14,1);
-    lcd.write(byte(0));
-    lcd.print(" ");
-  }
-  alarmFlag=false;
-}
-
 void checkAlarms(){
 
   //read in the alarms
@@ -243,11 +224,28 @@ void checkAlarms(){
     int m=myAlarms[x+3];
     int d=myAlarms[x+6];
     int enable=myAlarms[x+9];
-    
+
     RTC.getTime();
 
-    if ( RTC.hour == h && RTC.minute == m && RTC.second < d && RTC.dow != 0 && RTC.dow != 6 && enable >0){
-      alarmFlag=true;
+    if ( RTC.hour == h && RTC.minute == m && RTC.second == 0 && RTC.dow != 0 && RTC.dow != 6 && enable >0){
+      // sound alarm
+      unsigned long currentMillis = millis();
+      lcd.setCursor(14,1);
+      lcd.write(byte(0));
+      lcd.write(byte(1));
+      digitalWrite(buzzerpin, HIGH);
+      if(currentMillis - previousMillis < d*500){
+        previousMillis = currentMillis; 
+        displayTime(4,1);
+        delay(50);
+      } 
+      else{
+        lcd.setCursor(14,1);
+        lcd.write(byte(0));
+        lcd.print(" ");
+        digitalWrite(buzzerpin, LOW);
+        delay(600); //make sure that the alarm doesnt repeat (for duations of 500mS)
+      }
     } 
   }
   //Serial.print("[memCheckcheckAlarms]");
@@ -423,6 +421,9 @@ int freeRam () {
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
+
+
+
 
 
 
